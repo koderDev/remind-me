@@ -2,11 +2,26 @@ const path = require('path');
 const fs = require('fs');
 
 function parseRemindLine(line) {
-  const match = line.match(/\/\/\s*#REMIND\s+(\d+)\s+HOURS?\s+<(.+)>/i);
+  const match = line.match(/\/\/\s*#REMIND\s+(\d*\.?\d+)\s*(S|M|H)\s+(.+)/i); //example chahi yo ho: // #REMIND 1 M ek minute update
   if (!match) return null;
+
+  const value=parseFloat(match[1])
+  const unit=match[2].toLowerCase();
+  const topic = match[3].trim();
+
+  let durn_ms;
+  if(unit==='s'){
+    durn_ms=value*1000;    
+  } else if(unit==='m'){
+    durn_ms=value*60000;
+  } else {
+    durn_ms=value*3600000;
+  }
+
   return {
-    hours: parseInt(match[1]),
-    topic: match[2].trim()
+    topic: topic,
+    triggerAt: Date.now()+durn_ms,
+    displayTime: `${value}${unit}`
   };
 }
 
