@@ -1,34 +1,58 @@
 const vscode = require('vscode');
+const {parseRemindLine, loadReminders, saveReminders} = require('./src/reminders')
 
-function highlighttodo(editor,todoDecoration){
+function highlighttodo(editor,todoDecoration, remindDecoration){
     if(!editor)return
-    const ranges=[]
+    const todoranges=[]
+	const remindRanges=[]
     for(let i=0;i<editor.document.lineCount;i++){
         const line=editor.document.lineAt(i).text;
-        const match=line.match(/\/\/\s*TODO.*/i);
-        if(match) {
-            const start=line.indexOf(match[0])
-            ranges.push(new vscode.Range(i,start,i,start+match[0].length))
+        const todo=line.match(/\/\/\s*TODO.*/i);
+        if(todo) {
+            const start=line.indexOf(todo[0])
+            todoranges.push(new vscode.Range(i,start,i,start+todo[0].length))
         }
-    }
-    editor.setDecorations(todoDecoration,ranges)
-}
 
+		const remind=line.match(/\/\/\s*#REMIND.*/i);
+		if(remind){
+			const start=line.indexOf(remind[0])
+			remindRanges.push(new vscode.Range(i,start,i,start+remind[0].length));
+		}
+    }
+    editor.setDecorations(todoDecoration,todoranges)
+    editor.setDecorations(remindDecoration,remindRanges)
+}
 
 function activate(context){
     console.log('IT WORKS')
 
 	const todoDecoration = vscode.window.createTextEditorDecorationType({
-		backgroundColor: 'rgba(255,200,0,0.3)',
-		color: '#000',
-		fontWeight: 'bold'
+		backgroundColor: new vscode.ThemeColor('badge.background'),
+		color: new vscode.ThemeColor('badge.foreground'),
+		fontWeight: 'bold',
+		borderRadius: '3px',
+		margin: '0 2px',
+		border: '1px solid rgba(255,255,255,0.1)'		
 	})
-    highlighttodo(vscode.window.activeTextEditor,todoDecoration)
 
-    vscode.window.onDidChangeActiveTextEditor(e=>highlighttodo(e,todoDecoration),null,context.subscriptions)
-    vscode.workspace.onDidChangeTextDocument(()=>highlighttodo(vscode.window.activeTextEditor,todoDecoration),null,context.subscriptions)
+	const remindDecoration = vscode.window.createTextEditorDecorationType({
+		backgroundColor: 'rgba(255, 17, 17, 0.2)',
+		color: '#ff3333',
+		fontWeight: 'bold',
+		borderRadius: '3px',
+		margin: '0 2px',
+		border: '1px solid rgba(255, 17, 17, 0.61)'		
+	})
 
-	context.subscriptions.push(todoDecoration);
+
+	if (vscode.window.activeTextEditor) {
+        highlighttodo(vscode.window.activeTextEditor, todoDecoration, remindDecoration);
+    }
+
+    vscode.window.onDidChangeActiveTextEditor(e=>highlighttodo(e,todoDecoration,remindDecoration),null,context.subscriptions)
+    vscode.workspace.onDidChangeTextDocument(()=>highlighttodo(vscode.window.activeTextEditor,todoDecoration,remindDecoration),null,context.subscriptions)
+
+	context.subscriptions.push(todoDecoration, remindDecoration);
 }
 
 
