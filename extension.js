@@ -1,10 +1,11 @@
 const vscode = require('vscode');
 const {parseRemindLine, loadReminders, saveReminders} = require('./src/reminders')
 
-function highlighttodo(editor,todoDecoration, remindDecoration){
+function highlighttodo(editor,todoDecoration, remindDecoration, reminderSetDecoration){
     if(!editor)return
     const todoranges=[]
 	const remindRanges=[]
+	const reminderSetRanges= []
     for(let i=0;i<editor.document.lineCount;i++){
         const line=editor.document.lineAt(i).text;
         const todo=line.match(/\/\/\s*TODO.*/i);
@@ -13,14 +14,33 @@ function highlighttodo(editor,todoDecoration, remindDecoration){
             todoranges.push(new vscode.Range(i,start,i,start+todo[0].length))
         }
 
-		const remind=line.match(/\/\/\s*#REMIND\s+(\d*\.?\d+)\s*([smh])\s+(.+)/i);
+		const remind=line.match(/\/\/\s*#REMIND/i);
 		if(remind){
 			const start=line.indexOf(remind[0])
 			remindRanges.push(new vscode.Range(i,start,i,start+remind[0].length));
 		}
+
+		const reminderSet=line.match(/\/\/\s*REMINDER SET:.*/i);
+		if(reminderSet){
+			const start=line.indexOf(reminderSet[0])
+			reminderSetRanges.push(new vscode.Range(i,start,i,start+reminderSet[0].length))
+		}
+
     }
     editor.setDecorations(todoDecoration,todoranges)
     editor.setDecorations(remindDecoration,remindRanges)
+	editor.setDecorations(reminderSetDecoration,reminderSetRanges);
+}
+
+function formatCountdown(ms){
+	if(ms<=0) return '0s'
+	const totalS=Math.ceil(ms/1000)
+	const h=Math.floor(totalS/3600)
+	const m=Math.floor((totalS%3600)/60)
+	const s=totalS%60
+	if(h>0) return `${h}h ${m}m`
+	if(m>0) return `${m}m ${s}s`
+	return `${s}s`
 }
 
 function activate(context){
@@ -41,62 +61,96 @@ function activate(context){
 		fontWeight: 'bold',
 		borderRadius: '3px',
 		margin: '0 2px',
-		border: '1px solid rgba(255, 17, 17, 0.61)'		
+		border: '1px solid rgba(255, 17, 17, 0.61)'
 	})
 
+	const reminderSetDecoration = vscode.window.createTextEditorDecorationType({
+		backgroundColor:'rgba(255,165,0,0.15)',
+		color: '#ffaa00',
+		fontWeight:'bold',
+		borderRadius: '3px',
+		margin: '0 2px',
+		border: '1px solid rgba(255,165,0,0.5)'
+	})
+
+	const statusBarItem=vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right,100)
+	context.subscriptions.push(statusBarItem)
 
 	if (vscode.window.activeTextEditor) {
-        highlighttodo(vscode.window.activeTextEditor, todoDecoration, remindDecoration);
+        highlighttodo(vscode.window.activeTextEditor, todoDecoration, remindDecoration, reminderSetDecoration);
     }
 
-    vscode.window.onDidChangeActiveTextEditor(e=>highlighttodo(e,todoDecoration,remindDecoration),null,context.subscriptions)
-    // vscode.workspace.onDidChangeTextDocument(()=>highlighttodo(vscode.window.activeTextEditor,todoDecoration,remindDecoration),null,context.subscriptions)
+    vscode.window.onDidChangeActiveTextEditor(e=>highlighttodo(e,todoDecoration,remindDecoration, reminderSetDecoration),null,context.subscriptions)
+    // vscode.workspace.onDidChangeTextDocument(()=>highlighttodo(vscode.window.activeTextEditor,todoDecoration,remindDecoration),null,context.subscriptions) //purano code
 
 	let typingTimeout;
+	let handledLines= new Set();
 
 	vscode.workspace.onDidChangeTextDocument(event=>{
 		const editor=vscode.window.activeTextEditor;
 		if(editor && event.document===editor.document){
-			highlighttodo(editor,todoDecoration,remindDecoration);
+			highlighttodo(editor,todoDecoration,remindDecoration, reminderSetDecoration);
 
-			// const lastChange=event.contentChanges[0]?.text;
 			const changeStart=event.contentChanges[0]?.range.start.line;
-			const lineText=changeStart!=null?editor.document.lineAt(changeStart).text:'';
-			if(lineText.includes("#REMIND")){
+			if(changeStart==null) return;
+
+			const lineText=editor.document.lineAt(changeStart).text;
+
+			const hasRemind=/\/\/\s*#REMIND\s*$/i.test(lineText.trim());
+			const lineKey=`${event.document.uri.toString()}:${changeStart}`;
+			if(hasRemind&&!handledLines.has(lineKey)){
+				handledLines.add(lineKey)
 				clearTimeout(typingTimeout)
-				typingTimeout=setTimeout(async () =>{
+				typingTimeout=setTimeout(async ()=>{
 					const input=await vscode.window.showInputBox({
-						prompt: "enter reminder: [time][unit] [topic] (e.g. 10m devlog this update)",
+						prompt: "set reminder: [time][unit] [topic] (e.g.: 10m devlog this update)",
 						placeHolder: "10m devlog this update",
 					})
 
 					if(input){
 						const dummyline=`// #REMIND ${input}`;
-						const data=parseRemindLine(dummyline);
+						const data=parseRemindLine(dummyline)
 						if(data){
-							const currRems=loadReminders(context)
+							const originalLine = editor.document.lineAt(changeStart).text;
+							const indent=originalLine.match(/^(\s*)/)[1];
+							const edit=new vscode.WorkspaceEdit();
+							const lineRange= editor.document.lineAt(changeStart).range;
+							edit.replace(editor.document.uri, lineRange,`${indent}// REMINDER SET: ${data.topic} IN ${data.displayTime}`);
+							await vscode.workspace.applyEdit(edit);
+
+							const currRems=loadReminders(context);
 							currRems.push(data)
 							saveReminders(context,currRems)
-							vscode.window.setStatusBarMessage(`$(clock) reminder set for ${data.topic}`,5000);
+							vscode.window.setStatusBarMessage(`$(clock) reminder set: ${data.topic} in ${data.displayTime}`,4000);
 						} else {
-							vscode.window.showErrorMessage('invalid format. use [time][unit] [reminder] format e.g. 10s,5m,1h followed by a topic');
+							vscode.window.showErrorMessage('invalid format. use [time][unit] [topic] e.g.: 10s this is topic, 5m need to do this, 1h do this after an hour');
+							handledLines.delete(lineKey)
 						}
+					} else {
+						handledLines.delete(lineKey)
 					}
-				},1500);
+				},600);
+			}
+
+			if(lineText.includes('#REMIND')&& !lineText.includes('REMINDER SET')){
+				handledLines.delete(lineKey)
 			}
 		}
 	}, null, context.subscriptions);
 
 	const intvl=setInterval(() => {
 		const reminders=loadReminders(context);
-		if(reminders.length===0) return;
+		if(reminders.length===0){
+			statusBarItem.hide()
+			return;
+		}
 		const now=Date.now();
-		const stillPending=[];
-		let changed=false;
+		const stillPending= [];
+		let changed =false;
 
 		reminders.forEach(r=>{ 
 			if(now>=r.triggerAt){
-				vscode.window.showWarningMessage(`REMINDER: ${r.topic}`);
+				vscode.window.showWarningMessage(`⌚ REMINDER: ${r.topic}`,{modal:false},'Dismiss');
 				changed=true;
 			} else {                  
 				stillPending.push(r);
@@ -105,6 +159,16 @@ function activate(context){
 
 		if(changed){
 			saveReminders(context,stillPending);
+		}
+
+		if(stillPending.length>0){
+			const soonest=stillPending.reduce((a,b)=>a.triggerAt<b.triggerAt?a:b)
+			const remaining=soonest.triggerAt-now;
+			statusBarItem.text=`$(clock) ${soonest.topic}: ${formatCountdown(remaining)}`
+			statusBarItem.tooltip=`Reminder: ${soonest.topic}. Fires in ${formatCountdown(remaining)}`
+			statusBarItem.show()
+		} else {
+			statusBarItem.hide();
 		}
 	}, 3000);
 
