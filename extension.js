@@ -140,6 +140,8 @@ function activate(context){
 
 	const intvl=setInterval(() => {
 		const reminders=loadReminders(context);
+
+		// console.log('interval tick.reminders: ',JSON.stringify(reminders)); //for debuggin
 		if(reminders.length===0){
 			statusBarItem.hide()
 			return;
@@ -149,7 +151,9 @@ function activate(context){
 		let changed =false;
 
 		reminders.forEach(r=>{ 
+			// console.log(`checking: ${r.topic}|now:${now}|triggerAt:${r.triggerAt}|diff:${r.triggerAt-now}ms`)//de buggg
 			if(now>=r.triggerAt){
+				// console.log('FIRING NOTIFICATIN FOR:',r.topic) //for debugginggg
 				vscode.window.showWarningMessage(`⌚ REMINDER: ${r.topic}`,{modal:false},'Dismiss');
 				changed=true;
 			} else {                  
