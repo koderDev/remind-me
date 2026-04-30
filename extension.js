@@ -177,8 +177,28 @@ function activate(context){
 	}, 3000);
 
 	context.subscriptions.push({dispose: () => clearInterval(intvl)});
-}
 
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand('extension.removeResidue',async ()=>{
+			const editor=vscode.window.activeTextEditor;
+			if(!editor)return;
+			const edit=new vscode.WorkspaceEdit();
+			const document=editor.document;
+
+			for(let i=0;i<document.lineCount;i++){
+				const line=document.lineAt(i);
+				if(/\/\/\s*REMINDER SET:.*/i.test(line.text)){
+					const range=line.rangeIncludingLineBreak;
+					edit.delete(document.uri,range);
+				}
+			}
+
+			await vscode.workspace.applyEdit(edit)
+			vscode.window.showInformationMessage('CLEANED UP REMINDER RESIDUES!!');
+		})
+	)
+}
 
 function deactivate() {
 }

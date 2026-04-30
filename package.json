@@ -13,7 +13,14 @@
     "onStartupFinished"
   ],
   "main": "./extension.js",
-  "contributes": {},
+  "contributes": {
+    "commands":[
+      {
+        "command":"extension.removeResidue",
+        "title":"RemindMe:Remove all reminder residue lines"
+      }
+    ]
+  },
   "scripts": {
     "lint": "eslint .",
     "pretest": "npm run lint",
