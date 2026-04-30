@@ -2,7 +2,7 @@ const path = require('path');
 const fs = require('fs');
 
 function parseRemindLine(line) {
-  const match = line.match(/\/\/\s*#REMIND\s+(\d*\.?\d+)\s*(S|M|H)\s+(.+)/i); //example chahi yo ho: // #REMIND 1 M ek minute update
+  const match = line.match(/\/\/\s*#REMIND\s+(\d*\.?\d+)\s*([smh])\s+(.+)/i); //example chahi yo ho: // #REMIND 1m ek minute update
   if (!match) return null;
 
   const value=parseFloat(match[1])
@@ -41,8 +41,11 @@ function loadReminders(context) {
 
 function saveReminders(context, reminders) {
   const file = getStoragePath(context);
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, JSON.stringify(reminders, null, 2));
+  const dir=path.dirname(file)
+  if(!fs.existsSync(dir)){
+    fs.mkdirSync(dir,{recursive:true})
+  }
+  fs.writeFileSync(file, JSON.stringify(reminders, null, 2),'utf8');
 }
 
 module.exports = { parseRemindLine, loadReminders, saveReminders };
