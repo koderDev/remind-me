@@ -193,9 +193,41 @@ function activate(context){
 					edit.delete(document.uri,range);
 				}
 			}
-
 			await vscode.workspace.applyEdit(edit)
 			vscode.window.showInformationMessage('CLEANED UP REMINDER RESIDUES!!');
+		})
+	)
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand('extension.deleteReminders',async()=>{
+			const reminders=loadReminders(context);
+
+			if(reminders.length===0){
+				vscode.window.showInformationMessage("You have no active reminders to manage");
+				return;
+			}
+
+			const items=reminders.map(r=>{
+				const remaining=r.triggerAt-Date.now();
+				return{
+					label: r.topic,
+					description: remaining>0? `ends in ${formatCountdown(remaining)}`: "expired",
+					detail: `original duration: ${r.displayTime}`,
+					original:r
+				}
+			});
+
+			const selections=await vscode.window.showQuickPick(items,{
+				canPickMany: true,
+				placeHolder:"Select reminders to DELETE (esc to cancel)"
+			})
+
+			if(selections && selections.length>0){
+				const toRemove=new Set(selections.map(s=>s.original.triggerAt));
+				const filtered=reminders.filter(r=>!toRemove.has(r.triggerAt));
+				saveReminders(context,filtered);
+				vscode.window.showInformationMessage(`successfully deleted ${selections.length} reminder(s).`);
+			}
 		})
 	)
 }

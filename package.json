@@ -1,8 +1,10 @@
 {
   "name": "remind-me",
-  "displayName": "remind-me",
-  "description": "reminds you to update your code",
-  "version": "0.0.1",
+  "displayName": "remindMe",
+  "description": "helps you set reminders for upcoming tasks.",
+  "version": "1.0.0",
+  "publisher":"damakerdev",
+  "icon":"img/logo.png",
   "engines": {
     "vscode": "^1.116.0"
   },
@@ -17,7 +19,11 @@
     "commands":[
       {
         "command":"extension.removeResidue",
-        "title":"RemindMe:Remove all reminder residue lines"
+        "title":"remindMe: Remove all reminder residue lines"
+      },
+      {
+        "command": "extension.deleteReminders",
+        "title":"remindMe: Manage/Delete active reminders"
       }
     ]
   },
