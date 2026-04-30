@@ -3,8 +3,12 @@
   "displayName": "remindMe",
   "description": "helps you set reminders for upcoming tasks.",
   "version": "1.0.0",
-  "publisher":"damakerdev",
+  "publisher":"koderDev",
   "icon":"img/logo.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/koderDev/remind-me.git"
+  },
   "engines": {
     "vscode": "^1.116.0"
   },

@@ -6,7 +6,7 @@ a vscode productivity extension that helps you set reminders for upcoming tasks.
 
 - `TODO highlighting` : you can highlight your TODOs using this extension. you simply have to type `#TODO` as a comment, followed by the text you want to save as the TODO text. e.g. usage: `// #TODO improve workflow`
 
-![TODO highlighting preview](./img/todo.png)
+![TODO highlighting preview](https://raw.githubusercontent.com/koderDev/remind-me/refs/heads/main/img/todo.png)
 
 - `Reminder setup` : you can set reminders for future tasks and updates using this extension. the command for the reminder setup is `// #REMIND`. 
 
@@ -18,7 +18,7 @@ a vscode productivity extension that helps you set reminders for upcoming tasks.
 - Now, you must see a line highlighted with yellow color saying `//REMINDER SET: <UR TITLE> IN <UR TIME>`. If you see this, then you will surely get a notification within vscode after the time you have set has passed.
 - the gif given below explains this process quite well :)
 
-![reminder setup process](./img/reminder-1.gif)
+![reminder setup process](https://raw.githubusercontent.com/koderDev/remind-me/refs/heads/main/img/reminder-1.gif)
 
 ## FAQ
 
@@ -33,7 +33,7 @@ a vscode productivity extension that helps you set reminders for upcoming tasks.
 5. WOOHOO! The reminder/s have been deleted.
 
 *reference gif below*
-![manage reminder command](./img/reminder-faq-1.gif)
+![manage reminder command](https://raw.githubusercontent.com/koderDev/remind-me/refs/heads/main/img/reminder-faq-1.gif)
 
 
 #### How can I remove the `//REMINDER SET:` line after the reminder has finished its job of reminding me. Will I have to remove each and every REMINDER SET lines from my code?
